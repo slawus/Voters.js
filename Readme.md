@@ -106,7 +106,7 @@ Voters are small objects, that encapsulates logic needed to determine if user ha
     
 ### API Doc
 
-You can find complete Api doc [here](docs/api.md)!
+You can find complete Api doc [here](docs/)!
 
 
 ## To do
