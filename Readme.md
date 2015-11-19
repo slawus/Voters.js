@@ -2,6 +2,14 @@
 
 Minimalistic JS implementation of [Symfony2 Voters](http://symfony.com/doc/current/cookbook/security/voters.html) mechanism.
 
+[![Build Status](https://travis-ci.org/slawus/Voters.js.svg?branch=master)](https://travis-ci.org/slawus/Voters.js)
+
+## Installation
+
+```bash
+$ npm install voters
+```
+
 ## What is it?
 Voters are simple mechanism which allows you to manage users permissions inside code.
 

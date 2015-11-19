@@ -1,5 +1,5 @@
 {
-  "name": "Voters.js",
+  "name": "voters",
   "version": "0.1.0",
   "author": "Slawek Pruchnik <slawus.dev@gmail.com>",
   "description": "An Access Control Voters module for JS, inspired by Symfony2 Voters (http://symfony.com/doc/current/cookbook/security/voters_data_permission.html)",
