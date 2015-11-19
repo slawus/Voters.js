@@ -2,7 +2,8 @@
 
 Minimalistic JS implementation of [Symfony2 Voters](http://symfony.com/doc/current/cookbook/security/voters.html) mechanism.
 
-[![Build Status](https://travis-ci.org/slawus/Voters.js.svg?branch=master)](https://travis-ci.org/slawus/Voters.js)
+[![Build Status](https://travis-ci.org/slawus/Voters.js.svg?branch=master)](https://travis-ci.org/slawus/Voters.js) [![Coverage Status](https://coveralls.io/repos/slawus/Voters.js/badge.svg?branch=master&service=github)](https://coveralls.io/github/slawus/Voters.js?branch=master)
+
 
 ## Installation
 
