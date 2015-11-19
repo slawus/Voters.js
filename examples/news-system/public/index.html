@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="slawus">
+
+    <title>Blog Post - Start Bootstrap Template</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.4.5/angular.min.js"></script>
+    <script type="text/javascript">
+        var app = angular.module('news-system', []);
+        app.controller('appController', ['$scope', 'api', '$interval', function ($scope, api, $interval) {
+            $scope.news = [];
+            $scope.page = 'login';
+            $scope.user = null;
+
+            $scope.$watch('user', function (newValue) {
+                api.user = newValue;
+            });
+
+            $scope.submitNews = function () {
+                api.postNews({
+                    'title': $scope.title,
+                    'content': $scope.content
+                }, function () {
+                    $scope.title = $scope.content = null;
+                    $scope.refreshNewsList();
+                });
+            };
+
+            $scope.deleteNews = function (id) {
+                api.deleteNews(id, function () {
+                    $scope.refreshNewsList();
+                })
+            };
+
+
+            $scope.refreshNewsList = function () {
+                api.getNews(function (collection) {
+                    $scope.news = collection;
+                })
+            };
+
+            $interval($scope.refreshNewsList, 500);
+        }]);
+
+        app.factory('api', ['$http', function ($http) {
+            var apiPath = '/api';
+
+            var errorCallback = function (res) {
+                if (res.status == 403) {
+                    alert('permission denied');
+                }
+            };
+
+            return {
+                getNews: function (cb) {
+                    $http({
+                        method: 'GET',
+                        url: apiPath + '/news',
+                        headers: {
+                            'X-User': this.user
+                        }
+                    }).then(function (res) {
+                        cb(res.data);
+                    }, errorCallback);
+                },
+                postNews: function (entry, cb) {
+                    $http({
+                        method: 'POST',
+                        url: apiPath + '/news',
+                        headers: {
+                            'X-User': this.user
+                        },
+                        data: {news: entry}
+                    }).then(function () {
+                        cb();
+                    }, errorCallback);
+                },
+                deleteNews: function (id, cb) {
+                    $http({
+                        method: 'DELETE',
+                        url: apiPath + '/news/' + id,
+                        headers: {
+                            'X-User': this.user
+                        }
+                    }).then(function () {
+                        cb();
+                    }, errorCallback);
+                },
+                user: ''
+            }
+        }])
+    </script>
+
+</head>
+
+<body ng-app="news-system" ng-controller="appController">
+
+<div ng-show="page == 'login'">
+    <div class="jumbotron">
+        <div class="container">
+            <h1>News system
+                <small>Voters.js Example</small>
+            </h1>
+            <p>This is simple example of Voters.js usage in web application. It's simple posts storing service, that
+                allows any user to add new entry. It consist of 2 elements:</p>
+            <ul>
+                <li>REST API - node.js (<a href="http://expressjs.com/">express</a>) http API, that stores all system
+                    logic -> that's where voters.js are used.
+                </li>
+                <li>Frontend app - Web client written in HTML, CSS & Angular.js, that uses API and presents data in
+                    convenient way.
+                </li>
+            </ul>
+            <p>First you must log in. There are 3 kinds of users:</p>
+            <li>anonymous users: can ONLY view news (leave username empty)</li>
+            <li>authenticated users: they are allowed to write new entries, and delete news by themselfes. (put anything
+                but 'admin')
+            </li>
+            <li>admin: can add news, can delete any message, i.e. posted by any user (put 'admin' as username)</li>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3">
+                <form class="form-signin">
+                    <h2 class="form-signin-heading">Sign in to start</h2>
+                    <label for="inputUsername" class="sr-only">Username (leave empty to stay anonymous, put "admin"
+                        )</label>
+
+                    <p>
+                        <input type="text" id="inputUsername" class="form-control" ng-model="user"
+                               placeholder="Username (leave empty to stay anonymous, put 'admin' to log in as admin)"
+                               required="" autofocus="">
+                    </p>
+                    <button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="page='wall'">Sign in
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation -->
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation" ng-show="page != 'login'">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse"
+                    data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#">News system</a>
+        </div>
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse navbar-right" id="bs-example-navbar-collapse-1">
+            <p class="navbar-text ">Logged as {{ user ? user : 'anonymous' }}</p>
+            <ul class="nav navbar-nav">
+                <li><a href="#" ng-click="page='login'">Change account</a></li>
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+
+    </div>
+    <!-- /.container -->
+</nav>
+
+<!-- Page Content -->
+<div class="container" style="padding-top: 70px" ng-show="page !='login'">
+    <div class="row">
+        <!-- Blog Post Content Column -->
+        <div class="col-lg-8">
+
+            <!-- Comments Form -->
+            <div class="well">
+                <h2>Write news:</h2>
+
+                <form role="form">
+                    <div class="form-group">
+                        <input class="form-control" ng-model="title" type="text" placeholder="Title"/>
+                        <textarea class="form-control" ng-model="content" rows="3"
+                                  placeholder="Write content..."></textarea>
+                    </div>
+                    <div class="text-right">
+                        <button type="submit" class="btn btn-primary" ng-click="submitNews()">Submit</button>
+                    </div>
+                </form>
+            </div>
+            <hr/>
+
+            <!-- Blog Post -->
+            <p class="text-center" ng-show="news.length == 0">There are no entries yet. Write one!</p>
+
+            <div ng-repeat="entry in news track by entry.id | orderBy: news.date: false">
+                <button class="btn btn-sm btn-danger pull-right" ng-click="deleteNews(entry.id)"><i
+                        class="glyphicon glyphicon-trash"></i></button>
+                <h2>{{ entry.title }}</h2>
+
+                <p class="lead">
+                    by <a href="#">{{ entry.author }}</a>
+                </p>
+
+                <hr>
+                <p><span class="glyphicon glyphicon-time"></span> {{ entry.date }}</p>
+
+                <hr>
+                <p class="lead">{{ entry.content }}</p>
+                <hr>
+            </div>
+        </div>
+
+        <!-- Blog Sidebar Widgets Column -->
+        <div class="col-md-4">
+            <!-- Side Widget Well -->
+            <div class="well">
+                <h4>News system</h4>
+
+                <p>Simple webpage, that allows adding news. There are 3 types of users:</p>
+                <ul>
+                    <li>anonymous users: can ONLY view news</li>
+                    <li>logged in users: they are allowed to write new entries, and delete news by themselfes.</li>
+                    <li>admin: can add news, can delete any message - i.e. posted by any user</li>
+                </ul>
+
+            </div>
+
+        </div>
+
+    </div>
+    <!-- /.row -->
+
+    <hr>
+
+    <!-- Footer -->
+    <footer>
+        <div class="row">
+            <div class="col-lg-12">
+                <p class="text-center">Copyright &copy; 2015</p>
+            </div>
+        </div>
+        <!-- /.row -->
+    </footer>
+
+</div>
+<!-- /.container -->
+
+</body>
+
+</html>

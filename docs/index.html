@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Home - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="VotersStack.html">VotersStack</a><ul class='methods'><li data-type='method'><a href="VotersStack.html#isAllowed">isAllowed</a></li><li data-type='method'><a href="VotersStack.html#registerVoter">registerVoter</a></li><li data-type='method'><a href="VotersStack.html#unregisterVoter">unregisterVoter</a></li></ul></li></ul><h3>Interfaces</h3><ul><li><a href="VoterInterface.html">VoterInterface</a><ul class='methods'><li data-type='method'><a href="VoterInterface.html#supportsPermission">supportsPermission</a></li><li data-type='method'><a href="VoterInterface.html#supportsResource">supportsResource</a></li><li data-type='method'><a href="VoterInterface.html#vote">vote</a></li></ul></li></ul>
+</nav>
+
+<div id="main">
+    
+
+    
+
+
+
+    
+
+
+
+
+
+
+
+
+
+    
+
+
+    <section class="readme">
+        <article><h1>Voters.js</h1><p>Minimalistic JS implementation of <a href="http://symfony.com/doc/current/cookbook/security/voters.html">Symfony2 Voters</a> mechanism.</p>
+<h2>What is it?</h2><p>Voters are simple mechanism which allows you to manage users permissions inside code.</p>
+<h3>...but we have ACL...</h3><p>Access Control Lists (e.g. <a href="https://github.com/OptimalBits/node_acl">node_acl</a>) are great way of managing user's permissions. However in many cases may be a little bit overwhelming. Their work involves creating roles which are assigned to answer for resources. These roles are assigned to users, which allows you to check whether an individual can perform a particular action. As you can see, there is a lot of relations. It's not huge issue if you have limited number of roles, but may be if your roles depends on resources.</p>
+<p>Imagine a simple blog system, where every authenticated user can post a message that is visible to anyone (even anonymous users). In other words, we have 3 roles:</p>
+<ul>
+<li>USER</li>
+<li>GUEST</li>
+<li>ADMINISTRATOR</li>
+</ul>
+<p>and 1 resource: <em>MESSAGE</em>.</p>
+<p>Now imagine, that users are allowed to remove messages written by them. That's where problem starts to get a little bit tricky. To achieve this with ACL, you need to create <strong>special role for every message</strong>, i.e. <em>MESSAGE<em>AUTHOR</em>#ID</em> (ID is message id), which will allow user to perform deletion only on this message. Ofcourse to achieve this, you still need to create new resource just for thi message, e.g. <em>MESSAGE_#ID</em>. Than you have 3 + n roles, and 1 + n resources (where n is number of messages). It starts to look bad right?</p>
+<p>Let's make it even worse! now imagine that authenticated users can post comments to messages, which can be deleted by their authors and parent message author. In this case you have roles:</p>
+<ul>
+<li>USER</li>
+<li>GUEST</li>
+<li>ADMINISTRATOR</li>
+<li>MESSAGE<em>AUTHOR</em>#ID * n (n = number of messages)</li>
+<li>COMMENT<em>AUTHOR</em>#ID * k (k = number of comments)</li>
+</ul>
+<p>And resources:</p>
+<ul>
+<li>MESSAGE</li>
+<li>COMMENT</li>
+<li>MESSAGE_#ID * n</li>
+<li>COMMENT_#ID * k</li>
+</ul>
+<p>So it grows bigger and bigger. What is more, some of this relations are hardly cachable, as you have to update them (i.e. you have to add relations between message author and newly added mesasge comments). Now imagine how it grows in your database. Depending on databse engine (MongoDB, SQL etc.) it will probably couse performance issues at some stage <a href="http://stackoverflow.com/questions/14235335/node-js-and-acl#comment43384676_14243432.">^1</a>. What is more, in most cases it's all duplicated data, as you probably store comment/message author within its entity.</p>
+<h3>Voters to the rescue!</h3><p>Voter's allows you to replace this huge amount of data, with simple conditions. It's much simple to write: </p>
+<pre class="prettyprint source lang-javascript"><code>return message.author == user ? ALLOW : DENY</code></pre><p>isn't it?</p>
+<h2>Usage</h2><pre class="prettyprint source lang-javascript"><code>var myCustomVoter = ...; //your voter, more in &quot;Voter creation&quot;
+
+var Voters = require('Voters');
+var security = new Voters();
+security.registerVoter(myCustomVoter);
+
+//check permissions
+security.isAllowed(user, message, 'DELETE', function(err, decision) {
+    if(decision) {
+        messages.delete(message);
+    }
+});</code></pre><p>You can register as many voters as you want. If there is more then one voter that supports given permission and resource, decision from voter with higher priority will be given (at least for now, check <strong>TODO</strong>). However if it cannot make a clear decision (returns Voter.DECISION.ABSTAIN), proccess moves to next voter. Voters priority is determined by order in which they were registered.</p>
+<h3>Voter creation</h3><p>Voters are small objects, that encapsulates logic needed to determine if user has permission to given action on resource. It must implements methods:</p>
+<ul>
+<li><p><strong>vote</strong>: function (user, resource, permission, function(err, decision) ) - determines if user has permission to perform action on resource. Decision should be one of values:</p>
+<ul>
+<li>Voters.DECISION.ACCESS_GRANTED - allow user</li>
+<li>Voters.DECISION.ACCESS_DENIED - deny user</li>
+<li><p>Voters.DECISION.ACCESS_ABSTAIN - can't make decision</p>
+<p>Arguments:</p>
+<pre class="prettyprint source lang-javascript"><code>  user {Mixed} 
+  resource {Mixed} 
+  permission {Mixed} 
+  cb {Function} callback called after decision making</code></pre></li>
+</ul>
+</li>
+<li><p><strong>supportsResource</strong>: function (resource) - return true if Voter supports given resource, false if not</p>
+<p>  Arguments:</p>
+<pre class="prettyprint source lang-javascript"><code>      resource {Mixed} resource passed to vote() method</code></pre></li>
+<li><p><strong>supportsPermission</strong>: function (permission) - should return boolean value whever Voter can decide about given permission</p>
+<p>  Arguments:</p>
+<pre class="prettyprint source lang-javascript"><code>      permission {Mixed} permission passed to vote() method</code></pre></li>
+</ul>
+<h3>API Doc</h3><p>You can find complete Api doc <a href="docs/api.md">here</a>!</p>
+<h2>To do</h2><ul>
+<li>move from callbacks (everyone knows <a href="http://callbackhell.com/">why</a>) to Promises.</li>
+<li>implement all <a href="http://symfony.com/doc/current/cookbook/security/voters.html#changing-the-access-decision-strategy">strategies</a> defined in Symfony 2. For now, Voters.js uses only &quot;Affirmative&quot; strategy.</li>
+<li>ready-for-use Voter for <a href="https://github.com/OptimalBits/node_acl">node_acl</a> integration with Voters.js</li>
+</ul></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Thu Nov 19 2015 20:44:58 GMT+0100 (CET) using the Minami theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>
